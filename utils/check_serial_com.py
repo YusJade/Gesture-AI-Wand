@@ -2,6 +2,7 @@ import serial
 import serial.tools
 import serial.tools.list_ports
 
+# 检查当前可用串口
 if __name__ == "__main__":
     index = 0
     print("# Available serial coms:")

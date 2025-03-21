@@ -7,6 +7,7 @@ import os
 import argparse
 
 # IMU: x_acc=%f, y_acc=%f, z_acc=%f, pitch=%f, roll=%f, yaw=%f
+# 使用正则匹配，开发板需按照该格式向串口打印传感器数据
 PATTERN = r"IMU: x_acc=([-+]?\d*\.?\d+), y_acc=([-+]?\d*\.?\d+), z_acc=([-+]?\d*\.?\d+), pitch=([-+]?\d*\.?\d+), roll=([-+]?\d*\.?\d+), yaw=([-+]?\d*\.?\d+)"
 BAUD_RATE = 115200
 
@@ -62,31 +63,34 @@ if __name__ == "__main__":
     opts = parser.parse_args()
 
     saved_directory = f"dataset/runs/run{get_run_time()}"
-    saved_file_name = f"{opts.gesture_name.lower()}_imu_data.txt"
-
     # 创建数据集目录
     if not os.path.exists(saved_directory):
         os.makedirs(saved_directory)
     logger.info(
-        f"dataset will be saved to {saved_directory}/{saved_file_name}")
+        f"dataset will be saved to {saved_directory}")
 
     serialcom = init_serialcom(opts.serial_com)
 
     current_record_count = 0
     while current_record_count < opts.record_count:
         current_sample_count = 0
+        # 对每次动作采样 sample_count 条传感器数据
         while current_sample_count < opts.sample_count:
-            recevied_data = serialcom.read_until().decode("ASCII")
-            print(recevied_data)
+            recevied_data = serialcom.read_until().decode("utf-8")
             if len(recevied_data) == 0 or not re.match(PATTERN, recevied_data):
                 continue
             x_acc, y_acc, z_acc, pitch, roll, yaw = get_imu_data(recevied_data)
+            saved_file_name = f"{opts.gesture_name.lower()}_imu_data_{current_record_count}.txt"
+
             with open(f"{saved_directory}/{saved_file_name}", "a") as file:
+                # 新建记录时加入表头
                 if current_sample_count == 0:
                     file.write("x_acc, y_acc, z_acc, pitch, roll, yaw\n")
                 file.write(
                     f"{x_acc}, {y_acc}, {z_acc}, {pitch}, {roll}, {yaw}\n")
+
             current_sample_count += 1
             logger.info(
-                f"sampled from imu: {x_acc}, {y_acc}, {z_acc}, {pitch}, {roll}, {yaw}")
+                f"{current_sample_count} sampled from imu: {x_acc}, {y_acc}, {z_acc}, {pitch}, {roll}, {yaw}")
+        current_record_count += 1
         logger.info("collected one record")
