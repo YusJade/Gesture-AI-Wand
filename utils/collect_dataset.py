@@ -62,8 +62,11 @@ if __name__ == "__main__":
                         default=10, help="index of serial com to open, use 'check_serial_com.py' to look available coms.")
     opts = parser.parse_args()
 
-    saved_directory = f"dataset/runs/run{get_run_time()}"
     # 创建数据集目录
+    if not os.path.exists("dataset/runs"):
+        os.makedirs("dataset/runs")
+
+    saved_directory = f"dataset/runs/run{get_run_time()}"
     if not os.path.exists(saved_directory):
         os.makedirs(saved_directory)
     logger.info(
@@ -77,7 +80,10 @@ if __name__ == "__main__":
         # 对每次动作采样 sample_count 条传感器数据
         while current_sample_count < opts.sample_count:
             recevied_data = serialcom.read_until().decode("utf-8")
-            if len(recevied_data) == 0 or not re.match(PATTERN, recevied_data):
+            if len(recevied_data) == 0:
+                continue
+            if not re.match(PATTERN, recevied_data):
+                print(recevied_data)
                 continue
             x_acc, y_acc, z_acc, pitch, roll, yaw = get_imu_data(recevied_data)
             saved_file_name = f"{opts.gesture_name.lower()}_imu_data_{current_record_count}.txt"
