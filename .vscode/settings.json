@@ -1,6 +1,6 @@
 {
   // 设置字体
-  "editor.fontFamily": "Maple Mono NF, Consolas, monospace",
+  "editor.fontFamily": "Monaco Nerd Font",
   // 启用连字
   "editor.fontLigatures": "'calt'",
 }

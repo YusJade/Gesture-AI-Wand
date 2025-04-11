@@ -1,6 +1,7 @@
 from cProfile import label
 import os
 import re
+from turtle import mode
 import keras
 import loguru
 import nnom
@@ -16,16 +17,19 @@ from sklearn.model_selection import train_test_split
 import argparse
 
 
-def split_train_valid(dataset_x: np.ndarray, dataset_y: np.ndarray, valid_ratio=0.3, test_ratio=0.1):
+def split_train_valid(dataset_x: np.ndarray, dataset_y: np.ndarray, valid_ratio=0.25, test_ratio=0.05):
     x_train, x_test, y_train, y_test = train_test_split(
-        dataset_x, dataset_y, test_size=test_ratio, train_size=1 - test_ratio
+        dataset_x, dataset_y, test_size=test_ratio, train_size=1 - test_ratio, random_state=31
     )
 
     x_train, x_valid, y_train, y_valid = train_test_split(
-        x_train, y_train, test_size=valid_ratio, train_size=1 - valid_ratio
+        x_train, y_train, test_size=valid_ratio, train_size=1 - valid_ratio, random_state=32
     )
 
-    return {
+    size_train = len(x_train)
+    size_valid = len(x_valid)
+    size_test = len(x_test)
+    result = {
         'x_train': x_train,
         'y_train': y_train,
         'x_valid': x_valid,
@@ -33,11 +37,17 @@ def split_train_valid(dataset_x: np.ndarray, dataset_y: np.ndarray, valid_ratio=
         'x_test': x_test,
         'y_test': y_test,
     }
+    loguru.logger.info(
+        f'划分数据集 {size_train}/{size_valid}/{size_test}')
+    loguru.logger.info(f'{result}')
+
+    return result
 
 
 def read_dataset_directory(dataset_dir: str, target_columns: list):
     dataset_x = []
     dataset_y = []
+    loguru.logger.info(f'加载数据集 {dataset_dir}')
     for file in os.listdir(dataset_dir):
         if file.endswith('.txt'):
             match = re.match(
@@ -48,16 +58,21 @@ def read_dataset_directory(dataset_dir: str, target_columns: list):
                     f'failed to get label from \"{file}\", fallback to \"None\"')
             else:
                 label = match.group(1)
-            dataset_y.append(label)
-
-            df = pd.read_csv(f'{dataset_dir}/{file}', skipinitialspace=True)
+            try:
+                df = pd.read_csv(f'{dataset_dir}/{file}',
+                                 skipinitialspace=True)
+            except Exception as e:
+                loguru.logger.warning(f'跳过项 {e}')
+                continue
             df = df[target_columns]
+            dataset_y.append(label)
             dataset_x.append(df.to_numpy())
+            loguru.logger.info(f'加载项 {file}')
     return dataset_x, dataset_y
 
 
-def train_model(x_train, y_train, x_valid, y_valid, input_shape: tuple):
-    classifier = GestureClassifier()
+def train_model(x_train, y_train, x_valid, y_valid, input_shape: tuple, num_classes=3, batch_size=10, epochs=10):
+    classifier = GestureClassifier(num_classes=num_classes)
     # input_shape = [None] + input_shape
     # print(type(x_train))
     # input_tensor = keras.layers.Input(shape=input_shape, dtype='float32')
@@ -77,17 +92,19 @@ def train_model(x_train, y_train, x_valid, y_valid, input_shape: tuple):
     history = classifier.model.fit(
         x=x_train,
         y=y_train,
-        batch_size=1,
-        epochs=1,
+        batch_size=batch_size,
+        epochs=epochs,
         validation_data=(x_valid, y_valid),
         shuffle=True,
         callbacks=[early_stopping, checkpoint]
     )
 
-    nnom.generate_model(classifier.model, x_test=x_valid, name="weight.h")
+    nnom.generate_model(classifier.model, x_test=x_valid, name="weights.h")
 
     del classifier.model
     tf.keras.backend.clear_session()
+
+    return history
 
 
 if __name__ == '__main__':
@@ -124,13 +141,39 @@ if __name__ == '__main__':
         dataset_x, padding='post', maxlen=opts.sequence_length, dtype='float32')
 
     dataset_y = utils.to_categorical(dataset_y, num_classes=opts.num_classes)
-    split_dataset_dict = split_train_valid(dataset_x, dataset_y)
+    split_dataset_dict = split_train_valid(
+        dataset_x, dataset_y, valid_ratio=0.3, test_ratio=0.3)
 
-    train_model(
+    history = train_model(
         x_train=split_dataset_dict['x_train'],
         y_train=split_dataset_dict['y_train'],
         x_valid=split_dataset_dict['x_valid'],
         y_valid=split_dataset_dict['y_valid'],
-        input_shape=opts.input_shape
+        input_shape=opts.input_shape,
+        num_classes=opts.num_classes,
+        batch_size=opts.batch_size,
+        epochs=opts.epochs
     )
-    # print(split_dataset_dict)
+
+    val_accuracy = history.history['val_accuracy'][-1]
+    print(f'验证集精确度：{val_accuracy: .4f}')
+
+    # 加载模型进行测试
+    model = keras.models.load_model('best.tf')
+    test_x = split_dataset_dict['x_test']
+    # print(f'输入测试数据:\n {test_data}')
+    y_pred = model.predict(split_dataset_dict['x_test'])
+    y_true = split_dataset_dict['y_test']
+    # print(y_pred)
+    # print(y_true)
+    y_true_classes = np.argmax(y_true, axis=1)
+    y_pred_classes = np.argmax(y_pred, axis=1)
+
+    from sklearn.metrics import classification_report
+    print(classification_report(y_true_classes,
+          y_pred_classes, target_names=opts.labels))
+
+    print('nnom evaluation:\n')
+    test_x = test_x.astype('float32')/255
+    nnom.evaluate_model(model, test_x, y_true)
+    nnom.generate_test_bin(test_x*127, y_true, name='test_data.bin')

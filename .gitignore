@@ -1,1 +1,6 @@
 runs
+dataset/**
+best.tf
+.vscode/settings.json
+weights.h
+*.bin
