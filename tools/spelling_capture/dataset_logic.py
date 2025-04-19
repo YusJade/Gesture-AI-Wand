@@ -27,6 +27,8 @@ class DatasetLogic(QObject):
         self.record_count = record_count
         self.gesture = gesture
     
+    def update_gesture(self, gesture):
+        self.gesture = gesture
 
     def get_run_time(self):
         folder_pattern = r"run(\d+)"

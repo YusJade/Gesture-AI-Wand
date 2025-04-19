@@ -14,7 +14,6 @@ class MainWindow(QMainWindow):
         self.is_open_serial = False
         self.worker_thread = QThread()
         self.dataset_logic = DatasetLogic()
-        self.dataset_logic.prepare_directory()
         self.file_window = FileWindow()
         # self.serial_window = SerialWindow()
         self.line_chart_window = LineChartWindow()        
@@ -35,8 +34,12 @@ class MainWindow(QMainWindow):
             from dataset_logic import DatasetLogic 
             
             self.dataset_logic = DatasetLogic(gesture=str(self.gesute_textedit.text()))
+            self.dataset_logic.prepare_directory()
+            self.file_window.set_directory(self.dataset_logic.get_dataset_dir())
             self.dataset_logic.open_serial(port_index, int(self.baudrate_combo.currentText()))
             self.dataset_logic.moveToThread(self.worker_thread)
+            self.dataset_logic.get_serial_signal.connect(lambda _: self.dataset_logic.update_gesture(self.gesute_textedit.text()))
+            
             self.run_logic_signal.connect(self.dataset_logic.start_collection)
             self.worker_thread.start()
             self.run_logic_signal.emit()
@@ -104,8 +107,6 @@ class MainWindow(QMainWindow):
         imu_preview_layout.addWidget(self.line_chart_window)
         left_layout.addLayout(imu_preview_layout)
         
-        
-        self.file_window.set_directory(self.dataset_logic.get_dataset_dir())
         right_layout.addWidget(self.file_window)
 
 

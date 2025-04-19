@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColorConstants, QPainter
+from PyQt6.QtGui import QColorConstants, QPainter, QColor
 from PyQt6.QtWidgets import QCheckBox, QLabel, QGridLayout, QMessageBox
 import os
 import pandas as pd
@@ -18,6 +18,7 @@ class LineChartWindow(QWidget):
         
         self.axis_x = QValueAxis()
         self.axis_y = QValueAxis()
+        self.axis_y.setRange(-2, 2)
         self.axis_x.setLabelsColor(QColorConstants.White)
         self.axis_y.setLabelsColor(QColorConstants.White)
         self.axis_x.setGridLineColor(QColorConstants.Gray)
@@ -82,15 +83,40 @@ class LineChartWindow(QWidget):
         self.redraw_chart()
     
     def redraw_chart(self):
+        series_colors = {
+            'x_acc': QColor(255, 245, 50),
+            'y_acc': QColor(130, 255, 50),
+            'z_acc': QColor(50, 255, 200),
+            'pitch': QColor(50, 145, 255),
+            'roll': QColor(130, 50, 255),
+            'yaw': QColor(255, 50, 200),
+        }
         self.chart.removeAllSeries()
+        self.chart.removeAxis(self.axis_x)  # 移除旧坐标轴
+        self.chart.removeAxis(self.axis_y)  # 移除旧坐标轴
+        
+        # 设置x轴间隔为50
+        self.axis_x.setTickInterval(50)
+        self.axis_x.setTickType(QValueAxis.TickType.TicksDynamic)
+        self.axis_y.setRange(-3, 3)  # 设置y轴范围
+        # 添加坐标轴
+        self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
+        self.chart.removeAllSeries()
+        
         for col in self.series_data.keys():
             if not self.series_visibility[col]:
                 continue
             series = QLineSeries()
             series.setName(col)
+            series.setColor(series_colors[col])
             for i in range(len(self.series_data[col])):
                 series.append(i, self.series_data[col][i])
             self.chart.addSeries(series)
+            
+            series.attachAxis(self.axis_x)
+            series.attachAxis(self.axis_y)
+
     
     
     def update_chart_data(self, file_path=None):

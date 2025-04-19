@@ -1,5 +1,5 @@
 from turtle import mode
-from PyQt6.QtWidgets import QWidget, QTreeView, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QTreeView, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QFileDialog
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtCore import QDir, pyqtSignal
 
@@ -13,8 +13,21 @@ class FileWindow(QWidget):
         self.tree_view.setAlternatingRowColors(True)
 
         layout = QVBoxLayout()
+        dir_layout = QHBoxLayout()
+        selected_button = QPushButton("选择目录")
+        self.selected_label = QLabel("当前目录: ")
+        dir_layout.addWidget(self.selected_label)
+        dir_layout.addWidget(selected_button)
+        selected_button.clicked.connect(self.slot_open_directory)
+        
+        layout.addLayout(dir_layout)
         layout.addWidget(self.tree_view)
         self.setLayout(layout)
+
+    def slot_open_directory(self):
+        file_path = QFileDialog.getExistingDirectory(self, "选择目录")
+        if file_path:
+            self.set_directory(file_path)
 
     def slot_refresh_directory(self, path):
         self.set_directory(path)
