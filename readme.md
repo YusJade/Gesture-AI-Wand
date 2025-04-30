@@ -1,4 +1,4 @@
-# Gesture AI Wand
+# 赛博遥控法杖
 
 ## 配置 Python 环境
 

@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import argparse
 
+
 class LineChartWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -15,7 +16,7 @@ class LineChartWindow(QWidget):
         self.chart.setBackgroundBrush(QColorConstants.Black)
         self.chart_view = QChartView(self.chart)
         self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
+
         self.axis_x = QValueAxis()
         self.axis_y = QValueAxis()
         self.axis_y.setRange(-2, 2)
@@ -23,7 +24,7 @@ class LineChartWindow(QWidget):
         self.axis_y.setLabelsColor(QColorConstants.White)
         self.axis_x.setGridLineColor(QColorConstants.Gray)
         self.axis_y.setGridLineColor(QColorConstants.Gray)
-        
+
         self.series_visibility = {
             'x_acc': True,
             'y_acc': True,
@@ -40,7 +41,7 @@ class LineChartWindow(QWidget):
             'roll': list(),
             'yaw': list(),
         }
-        
+
         x_acc_checkbox = QCheckBox('x_acc')
         x_acc_checkbox.setChecked(True)
         y_acc_checkbox = QCheckBox('y_acc')
@@ -54,15 +55,21 @@ class LineChartWindow(QWidget):
         yaw_checkbox = QCheckBox('yaw')
         yaw_checkbox.setChecked(False)
         view_label = QLabel("绘制视图")
-        
-        x_acc_checkbox.stateChanged.connect(lambda state: self.slot_series_visibility_changed(state, 'x_acc'))
-        y_acc_checkbox.stateChanged.connect(lambda state: self.slot_series_visibility_changed(state, 'y_acc'))
-        z_acc_checkbox.stateChanged.connect(lambda state: self.slot_series_visibility_changed(state, 'z_acc'))
-        pitch_checkbox.stateChanged.connect(lambda state: self.slot_series_visibility_changed(state, 'pitch'))
-        roll_checkbox.stateChanged.connect(lambda state: self.slot_series_visibility_changed(state, 'roll'))
-        yaw_checkbox.stateChanged.connect(lambda state: self.slot_series_visibility_changed(state, 'yaw'))
+
+        x_acc_checkbox.stateChanged.connect(
+            lambda state: self.slot_series_visibility_changed(state, 'x_acc'))
+        y_acc_checkbox.stateChanged.connect(
+            lambda state: self.slot_series_visibility_changed(state, 'y_acc'))
+        z_acc_checkbox.stateChanged.connect(
+            lambda state: self.slot_series_visibility_changed(state, 'z_acc'))
+        pitch_checkbox.stateChanged.connect(
+            lambda state: self.slot_series_visibility_changed(state, 'pitch'))
+        roll_checkbox.stateChanged.connect(
+            lambda state: self.slot_series_visibility_changed(state, 'roll'))
+        yaw_checkbox.stateChanged.connect(
+            lambda state: self.slot_series_visibility_changed(state, 'yaw'))
         # view_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         layout = QGridLayout()
         layout.addWidget(view_label, 0, 0, 0, 0)
         layout.addWidget(x_acc_checkbox, 0, 1)
@@ -75,13 +82,13 @@ class LineChartWindow(QWidget):
         main_layout.addLayout(layout)
         main_layout.addWidget(self.chart_view)
         self.setLayout(main_layout)
-        
+
     def slot_read_file_and_plot(self, file_path):
         if file_path is None:
             return
         self.update_chart_data(file_path)
         self.redraw_chart()
-    
+
     def redraw_chart(self):
         series_colors = {
             'x_acc': QColor(255, 245, 50),
@@ -94,16 +101,16 @@ class LineChartWindow(QWidget):
         self.chart.removeAllSeries()
         self.chart.removeAxis(self.axis_x)  # 移除旧坐标轴
         self.chart.removeAxis(self.axis_y)  # 移除旧坐标轴
-        
+
         # 设置x轴间隔为50
         self.axis_x.setTickInterval(50)
         self.axis_x.setTickType(QValueAxis.TickType.TicksDynamic)
-        self.axis_y.setRange(-3, 3)  # 设置y轴范围
+        self.axis_y.setRange(-8, 8)  # 设置y轴范围
         # 添加坐标轴
         self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
         self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
         self.chart.removeAllSeries()
-        
+
         for col in self.series_data.keys():
             if not self.series_visibility[col]:
                 continue
@@ -113,12 +120,10 @@ class LineChartWindow(QWidget):
             for i in range(len(self.series_data[col])):
                 series.append(i, self.series_data[col][i])
             self.chart.addSeries(series)
-            
+
             series.attachAxis(self.axis_x)
             series.attachAxis(self.axis_y)
 
-    
-    
     def update_chart_data(self, file_path=None):
         if file_path is None:
             return
@@ -142,10 +147,10 @@ class LineChartWindow(QWidget):
                 continue
             for i in range(1, len(records)):
                 self.series_data[col].append(float(records[col][i]))
-    
-                
+
     def slot_series_visibility_changed(self, state, label):
         if label not in self.series_visibility.keys():
             return
-        self.series_visibility[label] = (state == 2) # Qt.CheckState.Checked: 2
+        self.series_visibility[label] = (
+            state == 2)  # Qt.CheckState.Checked: 2
         self.redraw_chart()

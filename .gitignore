@@ -4,3 +4,7 @@ best.tf
 .vscode/settings.json
 weights.h
 *.bin
+.layer_q_list
+evaluation
+.cache
+build

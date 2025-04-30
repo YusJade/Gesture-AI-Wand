@@ -3,4 +3,5 @@
   "editor.fontFamily": "Monaco Nerd Font",
   // 启用连字
   "editor.fontLigatures": "'calt'",
+  "idf.pythonInstallPath": "D:\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
 }

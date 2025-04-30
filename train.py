@@ -71,8 +71,9 @@ def read_dataset_directory(dataset_dir: str, target_columns: list):
     return dataset_x, dataset_y
 
 
-def train_model(x_train, y_train, x_valid, y_valid, input_shape: tuple, num_classes=3, batch_size=10, epochs=10):
-    classifier = GestureClassifier(num_classes=num_classes)
+def train_model(x_train, y_train, x_valid, y_valid, num_channels: int, num_classes=3, batch_size=10, epochs=10):
+    classifier = GestureClassifier(
+        num_classes=num_classes, num_channels=num_channels)
     # input_shape = [None] + input_shape
     # print(type(x_train))
     # input_tensor = keras.layers.Input(shape=input_shape, dtype='float32')
@@ -149,7 +150,7 @@ if __name__ == '__main__':
         y_train=split_dataset_dict['y_train'],
         x_valid=split_dataset_dict['x_valid'],
         y_valid=split_dataset_dict['y_valid'],
-        input_shape=opts.input_shape,
+        num_channels=len(opts.enable_channels),
         num_classes=opts.num_classes,
         batch_size=opts.batch_size,
         epochs=opts.epochs
@@ -174,6 +175,6 @@ if __name__ == '__main__':
           y_pred_classes, target_names=opts.labels))
 
     print('nnom evaluation:\n')
-    test_x = test_x.astype('float32')/255
     nnom.evaluate_model(model, test_x, y_true)
-    nnom.generate_test_bin(test_x*127, y_true, name='test_data.bin')
+    print(test_x[0], y_true[0])
+    nnom.generate_test_bin(test_x, y_true, name='test_data.bin')
